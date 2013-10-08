@@ -1,0 +1,723 @@
+
+git gitolite repo 搭建
+
+服务器装系统
+	ubuntu 12.04 server 64
+	以 A13 4.2 代码仓库为例
+
+约定：
+服务器 				server
+gitolite安装帐号		git
+管理员				admin
+
+
+
+一	搭建 gitolite 服务器（服务器端安装 gitolite）
+1	创建专用帐号
+	sudo adduser --system --shell /bin/bash --group git
+	sudo adduser git ssh
+2	将管理员公钥复制到服务器上
+	/home/zhongguomin
+	scp .ssh/id_rsa.pub topwise@192.168.1.33:/tmp/admin.pub
+3	服务器端安装 gitolite
+	更新软件
+	sudo apt-get update
+
+	安装 git
+	sudo apt-get install git-core
+	安装好后，查看版本
+	topwise@topwise:~$ git --version
+	git version 1.7.9.5
+
+
+	以下操作切换至 git 用户操作
+
+	使用git下载gitolite源码
+	注意：这里下载的是 蒋鑫 的改进版本
+	git clone git://github.com/ossxp-com/gitolite.git
+
+	创建目录
+	topwise@topwise:~$ sudo mkdir -p /usr/share/gitolite/conf
+	topwise@topwise:~$ sudo mkdir -p /usr/share/gitolite/hooks
+	安装 gitolite
+	cd gitolite/src/
+
+	设置环境变量
+	export PATH=/usr/local/bin:$PATH
+	sudo ./gl-system-install /usr/local/bin /usr/share/gitolite/conf /usr/share/gitolite/hooks
+	没有输出，说明成功
+
+	/home/git
+	gl-setup /tmp/admin.pub
+
+	如下输出，说明安装成功
+	$ gl-setup /tmp/admin.pub
+	The default settings in the rc file (/home/git/.gitolite.rc) are fine for most
+	people but if you wish to make any changes, you can do so now.
+
+	hit enter...
+	creating gitolite-admin...
+	Initialized empty Git repository in /home/git/repositories/gitolite-admin.git/
+	creating testing...
+	Initialized empty Git repository in /home/git/repositories/testing.git/
+	[master (root-commit) 3431969] gl-setup /tmp/admin.pub
+	 2 files changed, 26 insertions(+)
+	 create mode 100644 conf/gitolite.conf
+	 create mode 100644 keydir/admin.pub
+
+
+	得到如下目录结构(/home/git)
+	repositories
+	|-- gitolite-admin.git
+	`-- testing.git
+
+
+4	管理员本地克隆 gitolite-admin.git 仓库
+	git clone git@192.168.1.33:gitolite-admin.git
+
+	如下目录结构
+	gitolite-admin/
+	├── conf
+	│   └── gitolite.conf
+	└── keydir
+		└── admin.pub
+
+	
+5	增加新用户
+
+	该用户提交自己的公钥给管理员
+	/home/test/.ssh
+	scp id_rsa.pub zhongguomin@192.168.1.108:/home/zhongguomin/git/gitolite_33/admin/gitolite-admin/keydir/
+	
+	管理员加入该用户，并授权
+	/home/zhongguomin/git/gitolite_33/admin/gitolite-admin/keydir
+	mv id_rsa.pub test.pub
+	git add keydir/test.pub
+	git commit -m "add user: test"
+	git push
+
+	git clone git@192.168.1.33:testing.git
+
+	说明：
+	这里没有授权，因为 testing 仓库默认设置是所有用户可读写
+
+6	新建版本库
+	
+	vim conf/gitolite.conf
+		diff --git a/conf/gitolite.conf b/conf/gitolite.conf
+		index ea413e5..7f0424d 100644
+		--- a/conf/gitolite.conf
+		+++ b/conf/gitolite.conf
+		@@ -23,3 +23,6 @@ repo    testing
+				 RW    master              = zhongguomin test
+				 RW+CD refs/heads/u/USER/  = @all
+		 
+		+repo testing2
+		+        RW+                     = @all
+	添加版本库，提交后，自动创建该版本库
+
+	git clone git@192.168.1.33:testing2.git
+	
+
+二	配置 git dameon
+1	安装git dameon
+	sudo apt-get install git-daemon-run
+
+
+2	设置仓库目录
+	修改/etc/sv/git-daemon/run，配置git tree的目录以及共享目录
+
+	root@topwise:/home/topwise# cat /etc/sv/git-daemon/run
+		#!/bin/sh
+		exec 2>&1
+		echo 'git-daemon starting.'
+		exec chpst -ugitdaemon \
+		  "$(git --exec-path)"/git-daemon --verbose --reuseaddr \
+			--export-all --enable=receive-pack --base-path=/home/git/repositories /home/git/repositories
+
+		#exec chpst -ugitdaemon \
+		#  "$(git --exec-path)"/git-daemon --verbose --reuseaddr \
+		#    --base-path=/var/cache /var/cache/git
+
+	重启机器
+
+	现在可以试试用下面的命令来克隆版本库了：
+	git clone git://192.168.1.33/git_test/testing2.git
+	
+	提示
+	git clone git://192.168.1.33/testing2.git
+	Initialized empty Git repository in /home/zhongguomin/git/gitolite_33/test/testing2/.git/
+	fatal: remote error: access denied or repository not exported: /testing2.git
+
+	如下修改，服务器上 /home/git
+	chmod -R 755 projects.list
+	chmod -R 755 repositories
+
+	搞定
+	git clone git://192.168.1.33/git_test/testing2.git
+
+	
+3	建立服务器目录结构
+	repositories/
+	├── git_repo
+	│   └── a13
+	│       ├── android
+	│       │   ├── device
+	│       │   └── platform
+	│       ├── lichee
+	│       │   ├── boot.git
+	│       │   ├── buildroot.git
+	│       │   ├── linux-3.0.git
+	│       │   ├── tools.git
+	│       │   └── u-boot.git
+	│       └── manifest.git
+	├── git_test
+	│   ├── testing.git
+	│   ├── testing2.git
+	│	└── manifest.git
+	├── gitolite-admin.git
+	└── repo.git
+
+
+
+4	建立 manifest.git，加入 default.xml
+
+	gitolite.conf 中加入 manifest 仓库，提交后，自动创建该仓库
+
+	/home/zhongguomin/git/gitolite_33/admin/gitolite-admin
+		diff --git a/conf/gitolite.conf b/conf/gitolite.conf
+		index 99a29ad..ec75cc8 100644
+		--- a/conf/gitolite.conf
+		+++ b/conf/gitolite.conf
+		@@ -26,3 +26,6 @@ repo    git_test/testing
+		 repo    git_test/testing2
+				 RW+                     = @all
+		 
+		+repo    git_test/manifest
+		+        RW+                     = @admin
+	
+	
+	下载 manifest 仓库	
+	/home/test/test_33_gitolite
+	git clone git@192.168.1.33:git_test/manifest.git
+
+	
+	加入 default.xml 文件
+	cd manifest/
+	vim default.xml
+		<?xml version="1.0" encoding="UTF-8"?>
+		<manifest>
+				<remote name="origin"  fetch="." />
+				<default revision="master" remote="origin" />
+				<project path="testing" name="testing" />
+				<project path="testing2" name="testing2" />
+		</manifest>
+
+	git add default.xml
+	git commit -m "Add default.xml"
+	git push origin master
+
+
+
+5	修改 repo.git
+
+	... .
+	scp -r repo.git git@192.168.1.33:/home/git/repositories/
+
+	下载 repo 仓库
+	git clone git@192.168.1.33:repo.git
+
+	修改 repo/repo 文件中下面一行，将 username 替换成客户下载账号的用户名
+		#REPO_URL='ssh://username@61.143.53.198/git_repo/repo.git'
+		REPO_URL='ssh://git@192.168.1.33/repo.git'
+		REPO_REV='master'
+
+	把 repo 引导脚本添加到自己计算机环境变量中
+	$ cp repo/repo /usr/local/bin/repo
+	$ chmod 777 /usr/local/bin/repo
+
+	
+	conf/gitolite.conf 中加入 repo 仓库
+
+		diff --git a/conf/gitolite.conf b/conf/gitolite.conf
+		index de2dd6d..697aee1 100644
+		--- a/conf/gitolite.conf
+		+++ b/conf/gitolite.conf
+		@@ -29,4 +29,6 @@ repo    git_test/testing2
+		 repo    git_test/manifest
+				 RW+                     = @admin
+		 
+		+repo    repo
+		+        RW+                     = @admin
+
+
+6	测试 repo
+	
+	cp repo/repo /usr/local/bin/repo
+
+	/home/zhongguomin/git/gitolite_33/test
+	repo init -u ssh://git@192.168.1.33/git_test/manifest.git
+	repo sync	
+
+
+	repo init -u ssh://git@192.168.1.33/git_test/test/manifest.git
+	repo sync
+
+
+7	关于 repo
+
+	repo文件相当于启动Repo的启动器。但是，很多初学者都进入了一个误区，认为repo文件就是Repo的全部。
+	其实这是不对的，当执行下面这个命令时：repo其实做了很多很多的事情.....
+
+	repo init -u ssh://git@192.168.1.33/manifest.git
+
+	1、首先它创建一个.repo的文件夹，这个文件夹是隐藏的。接下来Repo所做的事情都是在.repo这个文件夹底下进行的。
+	2、它从网上下载一个repo.git的工程，这个工程才是整整的Repo的全部，也就是我们前面说过的"git命令脚本工程"
+	3、最后它把"-u git://192.168.5.141/manifest.git"传递给了repo工程。
+		manifest.git工程中其实只有一个文件：default.xml，这个文件记录了一个工程列表。
+		当我们执行repo sync时，Repo通过解析default.xml这个文件，循环遍历下载所有的工程，从而达到统一管理的目的。
+
+
+	$ repo init -u URL [OPTIONS]
+	在当前目录安装repo.该命令创建一个.repo文件夹，文件夹中包含一些git仓库，这些仓库包含着repo源代码和Android manifest文件。.repo文件夹包含着
+	manifest.xml符号链接，它链接到.repo/manifests/文件夹中选定的manifest文件
+
+	可选参数：
+	   -u:指定一个获取manifest仓库(manifest repository) 的URL。The common manifest can be found at git://android.git.kernel.org/platform/manifest.git
+	   -m:选择一个仓库中的manifest文件，没有选择则默认为default.xml。
+	   -b:指定一个版本(revision),也就是一个特别的manifest-branch。
+	注释：对于以后的命令，当前目录必须是.repo目录的父目录或该父目录的子目录。
+
+
+
+三	repo 基本操作
+
+1	创建分支
+	# 已经从自己的公共代码库下载成功代码
+	/home/zhongguomin/git/gitolite_33/test
+	repo init -u ssh://git@192.168.1.33/git_test/manifest.git
+	repo sync
+
+	zhongguomin@brn-zhongguomin:~/git/gitolite_33/test$ repo branch
+   (no branches)
+
+	zhongguomin@brn-zhongguomin:~/git/gitolite_33/test$ repo start master --all
+	zhongguomin@brn-zhongguomin:~/git/gitolite_33/test$ repo branch
+	*  master                    | in all projects
+
+
+	先在本地仓库创建 branch_1 分支
+	repo start branch_1 --all
+
+	查看是否创建成功
+	repo branch
+
+	将自己的开发分支推送到服务器公共代码库中
+	repo forall -c 'git push origin branch_1'
+
+
+	此时公共代码库中就有了 master 和 branch_1 两个分支。开发人员可下载并进行开发
+
+
+
+2	开发人员从自己的公共代码库下载代码
+	以机器 192.168.1.37 为例，用户 test
+
+	邮件公钥给管理员
+	id_rsa.pub
+
+	管理员开发 test 用户权限
+	/home/zhongguomin/git/gitolite_33/admin/gitolite-admin
+	mv id_rsa.pub test.pub
+	mv test.pub keydir/
+	vim gitolite.conf
+
+	客户端下载 repo
+	/home/test/test_33_gitolite
+	git clone git@192.168.1.33:repo.git
+	拷贝到如下路径，并设置权限
+	cp repo/repo /usr/local/bin/
+	chmod 777 /usr/local/bin/repo
+
+
+	设置 git 信息
+	/home/test/test_33_gitolite
+	
+	git config --global user.email "test_33@163.com"
+	git config --global user.name "test_33"
+	
+	下载仓库
+	repo init -u ssh://git@192.168.1.33/git_test/manifest.git
+	repo sync
+
+	切换分支
+	repo start master --all
+	repo forall -c 'git checkout -b branch_1 origin/branch_1'
+	repo branch
+
+	开发人员有了 branch_1 分支,则可以进行一系列的开发工作。
+	开发人员本地提交,并推送到代码库
+
+
+
+
+
+四	下载全志 repo 镜象仓库与配置
+
+	当 A23 下载完 镜像仓库 后，参考下面的操作
+	目前以 A13 4.2 代码仓库为例
+
+	确定目录结构
+	/home/git
+		allwinner/
+		|-- a13
+		|   |-- android
+		|   `-- lichee
+		`-- repo
+
+1	从全志服务器下载 repo 引导脚本
+	$ git clone ssh://Topwise@61.143.53.198/git_repo/repo.git
+	
+	修改 repo/repo 文件中下面一行，将 username 替换成客户下载账号的用户名
+	REPO_URL='ssh://username@61.143.53.198/git_repo/repo.git'
+
+	把 repo 引导脚本添加到自己计算机环境变量中
+	$ cp repo/repo /usr/local/bin/repo
+	$ chmod 777 /usr/local/bin/repo
+
+2	下载 A13 android4.2 代码镜像仓库
+
+	$ mkdir android
+	$ cd android
+	$ repo init -u ssh://Topwise@61.143.53.198/git_repo/manifest.git -b a13-4.2 -m default.xml --mirror
+	$ repo sync
+
+	
+	$ mkdir lichee
+	$ cd lichee
+	$ repo init -u ssh://Topwise@61.143.53.198/git_repo/manifest.git -b a13-4.2 -m lichee.xml --mirror
+	$ repo sync
+
+	
+3	配置公共代码仓库
+
+	确定目录结构
+	repositories/
+	├── gitolite-admin.git
+	├── git_repo
+	│   └── a13
+	│       ├── android
+	│       │   ├── device
+	│       │   └── platform
+	│       ├── lichee
+	│       │   ├── boot.git
+	│       │   ├── buildroot.git
+	│       │   ├── linux-3.0.git
+	│       │   ├── tools.git
+	│       │   └── u-boot.git
+	│       └── manifest.git
+	├── git_test
+	│   ├── project_1.git
+	│   └── project_2.git
+	└── repo.git
+
+
+
+	/home/git/repositories/git_repo/a13/android
+	cp -r /home/git/allwinner/a13/android/device .
+	cp -r /home/git/allwinner/a13/android/platform .
+
+
+	/home/git/repositories/git_repo/a13/lichee
+	cp -r /home/git/allwinner/a13/lichee/boot.git .
+	cp -r /home/git/allwinner/a13/lichee/buildroot.git .
+	cp -r /home/git/allwinner/a13/lichee/linux-3.0.git .
+	cp -r /home/git/allwinner/a13/lichee/tools.git .
+	cp -r /home/git/allwinner/a13/lichee/u-boot.git .
+
+
+	该步取消，后面发现，需要手动创建 manifest.git 仓库
+	/home/git/repositories/git_repo/a13
+	cp -r /home/git/allwinner/a13/android/manifest.git .
+
+
+4	配置 gitolite.conf
+
+	加入 a13 4.2 相关仓库，并设置读写权限
+
+	diff --git a/conf/gitolite.conf b/conf/gitolite.conf
+	index f9624f5..3aa2fcc 100644
+	--- a/conf/gitolite.conf
+	+++ b/conf/gitolite.conf
+	@@ -42,9 +42,18 @@ repo    git_test/test/project/.+$
+		     RW+CD                     = @admin @drive_team @app_team
+	 
+	 
+	+############################################################################
+	+#   a13 4.2
+	+############################################################################
+	+repo    git_repo/a13/manifest
+	+        RW+CD                     = @admin
+	+        R                         = @all
+	 
+	+repo    git_repo/a13/android/.+$
+	+        RW+CD                     = @admin @drive_team @app_team
+	 
+	-
+	+repo    git_repo/a13/lichee/.+$
+	+        RW+CD                     = @admin @drive_team @app_team
+	 
+
+	提交后，manifest 仓库会自动创建
+
+
+5	配置 manifest
+
+	下载 manifest.git 仓库
+	git clone git@192.168.1.33:git_repo/a13/manifest.git
+	
+	加入 android.xml lichee.xml
+	cp ..... android.xml .
+	cp ..... lichee.xml .
+
+	git add android.xml
+	git add lichee.xml
+	git commit -m "add android.xml, lichee.xml"
+	git push origin master 
+
+
+
+6	测试 repo 下载
+
+	mkdir lichee
+	cd lichee
+	repo init -u ssh://git@192.168.1.33/git_repo/a13/manifest.git -m lichee.xml
+	repo sync
+
+	mkdir android
+	cd android
+	repo init -u ssh://git@192.168.1.33/git_repo/a13/manifest.git -m android.xml
+	repo sync
+
+
+7	管理员创建开发分支
+	下载代码仓库后，以 lichee 为例
+
+	刚下载的仓库，没有在任何分支上，使用前，需要先建立分支
+	$ repo branch
+	(no branches)
+
+	切换到全志版本库的主分支上
+	repo start a1x-jb-4.2 --all
+
+	本地创建开发分支
+	repo start branch_1 --all
+	查看是否创建成功
+	repo branch
+	推送开发分支到服务器上
+	repo forall -c 'git push lichee branch_1:branch_1'
+
+	此时公共代码库中就有了 branch_1 分支。开发人员可下载并进行开发
+
+	
+8	开发人员测试增删改代码，更新仓库
+
+	下载仓库后，没有在任何分支上
+	$repo branch
+	(no branches)
+
+
+	切换到主分支
+	repo start a1x-jb-4.2 --all
+
+	切换到开发分支 branch_1
+	repo forall -c 'git checkout -b branch_1 lichee/branch_1'
+
+
+	查看当前分支
+	repo branch
+
+	开发人员有了 branch_1 分支,则可以进行一系列的开发工作。
+	需要注意的是：repo 是管理多个仓库的，可以直接进入具体版本库，增删改文件，操作方法同 git 操作。
+
+	更新仓库，比如 lichee
+	更新某个仓库，可以进入该仓库，执行 git pull
+	比如
+	cd linux-3.0
+	git pull
+	
+	更新所有仓库，在仓库根目录下执行，repo sync
+	比如
+	lichee
+	repo sync
+
+
+
+五	后续 SDK 升级步骤
+未测试验证
+
+1	负责人从客户自己的公共代码库下载android和lichee代码, （直接在原来创建 branch_1
+	分支时下载的那个目录下即可）。添加远程仓库： 
+
+	全志 lichee 仓库下载地址
+	repo init -u ssh://Topwise@61.143.53.198/git_repo/manifest.git -b a13-4.2 -m lichee.xml --mirror
+		lichee	ssh://Topwise@61.143.53.198/git_repo/lichee_a13/linux-3.0.git (fetch)
+		lichee	ssh://Topwise@61.143.53.198/git_repo/lichee_a13/linux-3.0.git (push)
+
+	我们 lichee 仓库下载地址
+	repo init -u ssh://git@192.168.1.33/git_repo/a13/manifest.git -m lichee.xml
+		lichee	ssh://git@192.168.1.33/git_repo/a13/lichee/linux-3.0.git (fetch)
+		lichee	ssh://git@192.168.1.33/git_repo/a13/lichee/linux-3.0.git (push)
+
+
+	全志 android 仓库下载地址
+	repo init -u ssh://Topwise@61.143.53.198/git_repo/manifest.git -b a13-4.2 -m default.xml --mirror
+		exdroid	ssh://Topwise@61.143.53.198/git_repo/android_a13/device/softwinner/nuclear-common.git (fetch)
+		exdroid	ssh://Topwise@61.143.53.198/git_repo/android_a13/device/softwinner/nuclear-common.git (push)
+		
+	我们 android 仓库下载地址
+	repo init -u ssh://git@192.168.1.33/git_repo/a13/manifest.git -m android.xml
+		exdroid	ssh://git@192.168.1.33/git_repo/a13/android/device/softwinner/nuclear-common.git (fetch)
+		exdroid	ssh://git@192.168.1.33/git_repo/a13/android/device/softwinner/nuclear-common.git (push)
+
+
+
+	将全志服务器上的发布仓库添加为远程仓库
+	$ cd lichee 
+	$ repo remote add quanzhi ssh://Topwise@61.143.53.198/git_repo/lichee_a13/
+
+	$ cd android 
+	$ repo remote add quanzhi ssh://Topwise@61.143.53.198/git_repo/android_a13/
+
+
+
+
+2	查看远程仓库是否添加正确
+	cd android/device/softwinner/nuclear-common
+	$ git remote -v
+	exdroid	ssh://git@192.168.1.33/git_repo/a13/android/device/softwinner/nuclear-common.git (fetch)
+	exdroid	ssh://git@192.168.1.33/git_repo/a13/android/device/softwinner/nuclear-common.git (push)
+	quanzhi	ssh://Topwise@61.143.53.198/git_repo/android_a13/device/softwinner/nuclear-common.git (fetch)
+	quanzhi	ssh://Topwise@61.143.53.198/git_repo/android_a13/device/softwinner/nuclear-common.git (push)
+
+
+
+	cd lichee/linux-3.0
+	$ git remote -v
+	lichee	ssh://git@192.168.1.33/git_repo/a13/lichee/linux-3.0.git (fetch)
+	lichee	ssh://git@192.168.1.33/git_repo/a13/lichee/linux-3.0.git (push)
+	quanzhi	ssh://Topwise@61.143.53.198/git_repo/lichee_a13/linux-3.0.git (fetch)
+	quanzhi	ssh://Topwise@61.143.53.198/git_repo/lichee_a13/linux-3.0.git (push)
+
+
+	
+3	如地址错误，删除远程仓库重新添加。删除远程仓库的命令为：
+
+	$ cd android
+	$ repo remote rm quanzhi 
+	$ cd lichee 
+	$ repo remote rm quanzhi 
+
+
+4	远程仓库添加成功，获取远程仓库更新,同时能获取到全志发布的tag: 
+
+
+	本地的 android(jb-4.2-exdroid)，lichee (a1x-jb-4.2) 分支同步更新，
+	和全志发布的 android(jb-4.2-exdroid)，lichee (a1x-jb-4.2)  分支内容一致
+
+	$ cd android
+
+	查看是否有修改，确保为干净状态再继续
+	$ repo status
+
+=======================================================
+	获取更新
+	$ repo forall -c 'git fetch quanzhi'
+	$ repo checkout apollo-dev
+
+	查看是否全部切换到apollo-dev分支 
+	$ repo branch
+	$ repo forall -c git merge quanzhi/apollo-dev 
+
+
+	$ cd ../lichee 
+	$ repo forall -c git fetch quanzhi 
+	$ repo status # 查看是否有修改 
+	$ repo checkout apollo-dev 
+	$ repo branch # 查看是否全部切换到apollo-dev分支 
+	$ repo forall -c git merge quanzhi/apollo-dev 
+	# 本地的apollo-dev分支同步更新，和全志发布的apollo-dev分支内容一致 
+
+
+5	将同步完成的内容推送到自己的公共代码库中 
+	$ cd android
+	$ repo forall -c git push homlet apollo-dev 
+	全志发布的tag也推送到自己的公共代码库中
+	$ repo forall -c git push homlet homlet-apollo-android-v0.5 
+	
+	$ cd ../lichee 
+	$ repo forall -c git push homlet apollo-dev 
+	$ repo forall -c git push homlet homlet-apollo-android-v0.2 
+
+
+	推送成功后，其他开发人员A 或B在本地使用如下命令可更新本地的apollo-dev分支。 
+	$ cd android4.0 
+	$ repo status # 查看状态，是否有未提交的修改,确保为干净状态再更新 
+	$ repo checkout apollo-dev 
+	$ repo branch 
+	$ repo sync 
+	$ cd ../lichee 
+	$ repo status # 查看状态，是否有未提交的修改,确保为干净状态后再更新 
+	$ repo checkout apollo-dev 
+	$ repo branch 
+	$ repo sync 
+	开发人员本地的apollo-dev分支更新完成，提交历史和全志发布的apollo-dev分支一致。 
+
+
+6	将全志发布版本代码合并到自己的开发分支上
+	此过程为一个整合过程，应由负责人进行操作。
+	$ cd android4.0 
+	$ repo status # 查看状态，确保为干净状态再合并 
+	$ repo checkout develop # 切换到自己的开发分支上 
+	$ repo branch 
+	$ repo forall -c git merge apollo-dev 
+	$ cd ../lichee 
+	$ repo status # 查看状态，确保为干净状态再合并 
+	$ repo checkout develop # 切换到自己的开发分支上 
+	$ repo branch 
+	$ repo forall -c git merge apollo-dev 
+
+
+	合并过程中，如提示出现冲突，需要负责人手动解决，耐心修改代码。完成后，使用命令
+	git add filename来标记为已解决状态，所有的冲突都解决后，在本地做提交，完成一次合并。
+
+
+7	将合并完成后的开发分支推送到公共代码库
+	合并完成后，确保合并结果没有问题。则可以推送到公共代码库中。
+
+	$ cd android4.0 
+	$ repo status # 查看状态，确保为干净状态 
+	$ repo checkout develop # 切换到自己的开发分支上 
+	$ repo branch 
+	$ repo forall -c git pull homlet develop # 推送之前应该先从公共代码库
+	更新一下，以免推送不成功 
+	$ repo forall -c git push homlet develop 
+	$ cd ../lichee 
+	$ repo status # 查看状态，确保为干净状态 
+	$ repo checkout develop # 切换到自己的开发分支上 
+	$ repo branch 
+	$ repo forall -c git pull homlet develop # 推送之前应该先从公共代码库
+	更新一下，以免推送不成功 
+	$ repo forall -c git push homlet develop 
+
+	
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,564 @@
+
+git gitosis repo 搭建
+
+
+服务器装系统
+	ubuntu 12.04 server 64
+	以 A13 4.2 代码仓库为例
+
+
+
+一	搭建 gitosis 服务器
+	
+1	安装 git
+	sudo apt-get install git-core	
+	
+2	安装 gitosis
+	sudo apt-get install python-setuptools
+
+	mkdir gitosis_src
+	cd gitosis_src
+
+	获取gitosis，
+		注意：这里使用的 gitosis 版本，不是官方的，使用的是 蒋鑫 的改进版本
+	git clone git://github.com/ossxp-com/gitosis.git
+	cd gitosis
+	安装
+	sudo python setup.py install
+
+3	创建专用用户
+	su root
+	adduser --system --shell /bin/bash --disabled-password --group git
+	adduser git ssh
+
+4	gitosis 服务初始化
+
+	本地端操作
+	cd /home/zhongguomin/.ssh
+	scp id_rsa.pub topwise@192.168.1.33:/tmp/
+
+	服务器端操作
+	/home/git
+	gitosis-init < /tmp/id_rsa.pub 
+	执行后，在当前目前产生两个文件夹 gitosis, repositories
+
+	chmod a+x repositories/gitosis-admin.git/hooks/post-update
+
+5	管理员克隆 gitosis-admin 管理库
+	
+	本地端操作
+	git clone git@192.168.1.33:gitosis-admin.git
+	得到如下目录
+		gitosis-admin/
+		├── gitosis.conf
+		└── keydir
+			└── zhongguomin.pub
+
+6	创建新仓库
+	
+	vim gitosis.conf
+	加入如下
+		# ------ Code repository: project_1 ------
+		[group project_1-admin]
+		members = @gitosis-admin
+		admin = project_1
+
+		[group project_1-devloper]
+		members = zhongguomin
+		writable = project_1
+
+		[group project_1-reader]
+		members = @all
+		readonly = project_1
+		# -------------------------------------
+
+	git add gitosis.conf
+	git commit -m "Add new repository: project_1"
+	git push
+
+	创建 project_1 仓库
+	mkdir project_1
+	cd project_1
+	git init
+	touch README
+	git add README
+	git commit -m "initialize porject_1"
+
+	git remote add origin git@192.168.1.33:project_1.git
+	git push origin master
+
+
+7	新增用户与授权
+	
+	假设新增用户 test
+	/home/test
+	ssh-keygen
+
+	cp .ssh/id_rsa.pub ....gitosis-admin/keydir/
+	mv id_rsa.pub test.pub
+
+	vim gitosis.conf，在仓库 project_1 中加入 test 用户
+		[group project_1-devloper]
+		members = zhongguomin test
+
+	git add gitosis.conf
+	git add keydir/test.pub
+	git commit -m "Add user test at project_1"
+	git push
+	
+
+8	用户下载仓库
+	git clone git@192.168.1.33:project_1.git
+	
+
+
+
+
+二	repo 服务器的搭建步骤
+
+1	安装git dameon
+	sudo apt-get install git-daemon-run
+	
+2	设置仓库目录
+	修改/etc/sv/git-daemon/run，配置git tree的目录以及共享目录
+
+	root@topwise:/home/topwise# cat /etc/sv/git-daemon/run
+	#!/bin/sh
+	exec 2>&1
+	echo 'git-daemon starting.'
+	exec chpst -ugitdaemon \
+		"$(git --exec-path)"/git-daemon --verbose --reuseaddr --export-all \
+		--base-path=/home/git/repositories /home/git/repositories
+
+	#exec chpst -ugitdaemon \
+	#  "$(git --exec-path)"/git-daemon --verbose --reuseaddr \
+	#    --base-path=/var/cache /var/cache/git
+
+
+	解决
+	zhongguomin@brn-zhongguomin:~/git/git_33_test/android$ repo forall -c 'git push exdroid develop:develop'
+	fatal: remote error: access denied or repository not exported: /platform/abi/cpp.git
+	fatal: remote error: access denied or repository not exported: /platform/bionic.git
+	. . .
+
+	加入 --enable=receive-pack
+
+	root@topwise:/home/topwise# cat /etc/sv/git-daemon/run
+	#!/bin/sh
+	exec 2>&1
+	echo 'git-daemon starting.'
+	exec chpst -ugitdaemon \
+		"$(git --exec-path)"/git-daemon --verbose --reuseaddr \
+		--export-all --enable=receive-pack --base-path=/home/git/repositories /home/git/repositories
+
+	#exec chpst -ugitdaemon \
+	#  "$(git --exec-path)"/git-daemon --verbose --reuseaddr \
+	#    --base-path=/var/cache /var/cache/git
+
+
+	重启机器
+
+3	建立 manifest.git 
+
+	/home/git/repositories/manifest.git
+	git init --bare manifest.git
+
+
+4	初始化 manifest.git，加入 default.xml
+
+	gitosis.conf中加入 manifest 仓库，使之可以下载
+
+	zhongguomin@brn-zhongguomin:~/git/git_33/gitosis-admin$ git diff
+	diff --git a/gitosis.conf b/gitosis.conf
+	index 10a6708..33ec680 100644
+	--- a/gitosis.conf
+	+++ b/gitosis.conf
+	@@ -4,6 +4,21 @@
+	 members = zhongguomin
+	 writable = gitosis-admin
+	 
+	+# ------ Code repository: manifest ------
+	+[group manifest-admin]
+	+members = @gitosis-admin
+	+admin = manifest
+	+
+	+[group manifest-devloper]
+	+members = @gitosis-admin
+	+writable = manifest
+	+
+	+[group manifest-reader]
+	+members = @gitosis-admin
+	+readonly = manifest
+	+# -------------------------------------
+
+	
+	下载 manifest 仓库	
+
+	/home/zhongguomin/git/git_33
+	git clone git@192.168.1.33:manifest.git
+	git clone git@192.168.1.33:git_repo/a13/manifest.git
+	
+	加入 default.xml 文件
+	cd manifest/
+	vim default.xml
+	zhongguomin@brn-zhongguomin:~/git/git_33/manifest$ cat default.xml 
+	<?xml version="1.0" encoding="UTF-8"?>
+	<manifest>
+		<remote name="origin"  fetch="git://192.168.1.33/" />
+		<default revision="master" remote="origin" />
+		<project path="project_1" name="project_1" />
+		<project path="project_2" name="project_2" />
+	</manifest>
+
+	git add default.xml
+	git commit -m "Add default.xml"
+	git push origin master
+
+
+5	修改 repo.git
+	
+	gitosis.conf中加入 repo 仓库，使之可以下载
+
+	diff --git a/gitosis.conf b/gitosis.conf
+	index 33ec680..deb3164 100644
+	--- a/gitosis.conf
+	+++ b/gitosis.conf
+	@@ -19,6 +19,21 @@ readonly = manifest
+	 # -------------------------------------
+	 
+	 
+	+# ------ Code repository: repo ------
+	+[group repo-admin]
+	+members = @gitosis-admin
+	+admin = repo
+	+
+	+[group repo-devloper]
+	+members = @gitosis-admin
+	+writable = repo
+	+
+	+[group repo-reader]
+	+members = @gitosis-admin
+	+readonly = repo
+	+# -------------------------------------
+
+	
+	下载 repo 仓库
+	git clone git@192.168.1.33:repo.git
+	cd repo/
+	vim repo
+
+
+	修改 repo 中， REPO_URL 地址
+	diff --git a/repo b/repo
+	index 2035d52..d21a591 100755
+	--- a/repo
+	+++ b/repo
+	@@ -2,7 +2,7 @@
+	 
+	 ## repo default configuration
+	 ##
+	-REPO_URL='ssh://username@61.143.53.198/git_repo/repo.git'
+	+REPO_URL='ssh://git@192.168.1.33/repositories/repo.git'
+	 REPO_REV='master'
+
+	git add repo
+	git commit -m "Modify repo url address"
+	git push
+
+
+6	测试 repo
+	
+	scp /usr/local/bin/repo zhongguomin@192.168.1.108:/usr/local/bin/repo
+	vim repo
+
+	# repo default configuration
+	##
+	REPO_URL='ssh://git@192.168.1.33/repo.git'
+	REPO_REV='master'
+
+
+	/home/zhongguomin/git/git_33_test
+	repo init -u ssh://git@192.168.1.33/manifest.git
+	
+
+7	关于 repo
+
+	repo文件相当于启动Repo的启动器。但是，很多初学者都进入了一个误区，认为repo文件就是Repo的全部。
+	其实这是不对的，当执行下面这个命令时：repo其实做了很多很多的事情.....
+
+	repo init -u ssh://git@192.168.1.33/manifest.git
+
+	1、首先它创建一个.repo的文件夹，这个文件夹是隐藏的。接下来Repo所做的事情都是在.repo这个文件夹底下进行的。
+	2、它从网上下载一个repo.git的工程，这个工程才是整整的Repo的全部，也就是我们前面说过的"git命令脚本工程"
+	3、最后它把"-u git://192.168.5.141/manifest.git"传递给了repo工程。
+		manifest.git工程中其实只有一个文件：default.xml，这个文件记录了一个工程列表。
+		当我们执行repo sync时，Repo通过解析default.xml这个文件，循环遍历下载所有的工程，从而达到统一管理的目的。
+
+
+	$ repo init -u URL [OPTIONS]
+	在当前目录安装repo.该命令创建一个.repo文件夹，文件夹中包含一些git仓库，这些仓库包含着repo源代码和Android manifest文件。.repo文件夹包含着
+	manifest.xml符号链接，它链接到.repo/manifests/文件夹中选定的manifest文件
+
+	可选参数：
+	   -u:指定一个获取manifest仓库(manifest repository) 的URL。The common manifest can be found at git://android.git.kernel.org/platform/manifest.git
+	   -m:选择一个仓库中的manifest文件，没有选择则默认为default.xml。
+	   -b:指定一个版本(revision),也就是一个特别的manifest-branch。
+	注释：对于以后的命令，当前目录必须是.repo目录的父目录或该父目录的子目录。
+
+
+
+三	下载全志 repo 镜象仓库与配置
+
+1	从全志服务器下载 repo 引导脚本
+	$ git clone ssh://Topwise@61.143.53.198/git_repo/repo.git
+	
+	修改 repo/repo 文件中下面一行，将 username 替换成客户下载账号的用户名
+	REPO_URL='ssh://username@61.143.53.198/git_repo/repo.git'
+
+	把 repo 引导脚本添加到自己计算机环境变量中
+	$ cp repo/repo /usr/local/bin/repo
+	$ chmod 777 /usr/local/bin/repo
+
+
+2	下载 A13 android4.2 代码镜像仓库
+	$ mkdir android4.2
+	$ cd android4.2
+	$ mkdir android
+	$ cd android
+	$ repo init -u ssh://Topwise@61.143.53.198/git_repo/manifest.git -b a13-4.2 -m default.xml --mirror
+	$ repo sync
+
+	对应 android4.2 的 lichee 代码镜像仓库
+	$ mkdir lichee
+	$ cd lichee
+	$ repo init -u ssh://Topwise@61.143.53.198/git_repo/manifest.git -b a13-4.2 -m lichee.xml --mirror
+	$ repo sync
+
+	
+3	配置公共代码仓库
+	/home/git/repositories
+	cp -r /home/topwise/allwinner_repo/a13/android_4.2/android/device/ .
+	cp -r /home/topwise/allwinner_repo/a13/android_4.2/android/platform/ .
+	cp -r /home/topwise/allwinner_repo/a13/android_4.2/android/repo.git .
+
+	mkdir lichee
+	cd lichee/
+	cp -r /home/topwise/allwinner_repo/a13/android_4.2/lichee/boot.git/ .
+	cp -r /home/topwise/allwinner_repo/a13/android_4.2/lichee/linux-3.0.git/ .
+	cp -r /home/topwise/allwinner_repo/a13/android_4.2/lichee/tools.git/ .
+	cp -r /home/topwise/allwinner_repo/a13/android_4.2/lichee/buildroot.git/ .
+	cp -r /home/topwise/allwinner_repo/a13/android_4.2/lichee/u-boot.git/ .
+
+
+	目录结构
+	repositories/
+	├── device
+	├── gitosis-admin.git
+	├── lichee
+	│   ├── boot.git
+	│   ├── buildroot.git
+	│   ├── linux-3.0.git
+	│   ├── tools.git
+	│   └── u-boot.git
+	├── manifest.git
+	├── platform
+	└── repo.git
+
+
+	
+	配置 manifest
+
+	/home/zhongguomin/git/git_33/manifest
+	android.xml
+		<?xml version="1.0" encoding="UTF-8"?>
+			<manifest>
+
+				<remote  name="exdroid" fetch="." />
+				<default revision="jb-4.2-exdroid" remote="exdroid" sync-j="4" />
+
+			  <project path="build" name="platform/build" >
+				<copyfile src="core/root.mk" dest="Makefile" />
+			  </project>
+			  <project path="abi/cpp" name="platform/abi/cpp" />
+			  <project path="bionic" name="platform/bionic" />
+			  <project path="bootable/bootloader/legacy" name="platform/bootable/bootloader/legacy" />
+			  <project path="bootable/diskinstaller" name="platform/bootable/diskinstaller" />
+			 . . .
+
+
+	lichee.xml
+		<?xml version="1.0" encoding="UTF-8"?>
+		<manifest>
+
+		  <remote  name="lichee" fetch="lichee" />
+		  <default revision="a1x-jb-4.2" remote="lichee" sync-j="4" />
+
+		  <project path="buildroot" name="buildroot">
+			<copyfile src="scripts/top_build.sh" dest="build.sh" />
+			<copyfile src="README" dest="README" />
+		  </project>
+		  <project path="boot" name="boot" />
+		  <project path="linux-3.0" name="linux-3.0" />
+		  <project path="u-boot" name="u-boot" />
+		  <project path="tools" name="tools" />
+
+		</manifest>
+
+
+
+	修改 gitosis.conf
+		# ------ Code repository: lichee ------
+		[group boot-admin]
+		members = @gitosis-admin
+		admin = lichee/boot
+
+		[group boot-devloper]
+		members = zhongguomin test
+		writable = lichee/boot
+
+		[group boot-reader]
+		members = @all
+		readonly = lichee/boot
+		. . .. .
+
+	这种改法不现实，android几百个版本库，一个一个添加，不可行
+
+	
+	重新整理git服务器目录结构
+	repositories/
+	├── gitosis-admin.git
+	├── git_repo
+	│   └── a13
+	│       ├── android
+	│       │   ├── device
+	│       │   └── platform
+	│       ├── lichee
+	│       │   ├── boot.git
+	│       │   ├── buildroot.git
+	│       │   ├── linux-3.0.git
+	│       │   ├── tools.git
+	│       │   └── u-boot.git
+	│       └── manifest.git
+	├── git_test
+	│   ├── project_1.git
+	│   └── project_2.git
+	└── repo.git
+
+
+	重新配置 gitosis.conf
+		# ------ Code repository: android ------
+		[group application-tearm]
+		members = @gitosis-admin
+		writable = git_repo/a13/android/**
+		# -------------------------------------
+
+
+
+		# ------ Code repository: lichee ------
+		[group driver-tearm]
+		members = @gitosis-admin
+		writable = git_repo/a13/lichee/**
+		# -------------------------------------
+
+
+	
+4	下载代码仓库	
+	/home/zhongguomin/git/git_33_test
+	mkdir android
+	cd android
+	repo init -u ssh://git@192.168.1.33/git_repo/a13/manifest.git -m android.xml
+	repo sync
+
+	mkdir lichee
+	cd lichee
+	repo init -u ssh://git@192.168.1.33/git_repo/a13/manifest.git -m lichee.xml
+	repo sync
+
+
+
+四	repo 基本操作
+1	负责人创建自己的开发分支
+
+	# 已经从自己的公共代码库下载成功代码
+
+	cd lichee
+	repo start a1x-jb-4.2 --all
+
+	先在本地仓库创建 branch_1 分支
+	repo start branch_1 --all
+
+	查看是否创建成功
+	repo branch
+
+	将自己的开发分支推送到服务器公共代码库中
+	repo forall -c 'git push lichee branch_1:branch_1'
+
+	
+
+	cd android
+	repo start jb-4.2-exdroid --all
+
+	先在本地仓库创建develop分支
+	repo start branch_1 --all
+
+	查看是否创建成功
+	repo branch
+
+	将自己的开发分支推送到服务器公共代码库中
+	repo forall -c 'git push exdroid branch_1'
+
+
+	此时公共代码库中就有了 a1x-jb-4.2 和 branch_1 两个分支。开发人员可下载并进行开发
+
+
+
+2	开发人员从自己的公共代码库下载代码
+	以机器 192.168.1.37 为例，用户 test
+
+	开发人员下载之前,
+	需要修改 repo 引导脚本,
+	repo 引导脚本是用于下载 repo.git 仓库
+	将 repo 引导脚本中的地址“REPO_URL='ssh://username@61.143.53.198/git_repo/repo.git'”修改为客
+	户自己的 repo.git 仓库下载地址。
+
+	/home/test/.ssh
+	scp id_rsa.pub zhongguomin@192.168.1.108:/home/zhongguomin/git/git_33/gitosis-admin/
+
+	/home/zhongguomin/git/git_33/gitosis-admin
+	mv id_rsa.pub test.pub
+	mv test.pub keydir/
+	vim gitosis.conf
+
+	/home/test/project
+	git clone git@192.168.1.33:repo.git
+	cp repo/repo /usr/local/bin/
+
+
+	/home/test/project/a13/lichee
+	git config --global user.email "test_33@163.com"
+	git config --global user.name "test_33"
+	
+	repo init -u ssh://git@192.168.1.33/git_repo/a13/manifest.git -m lichee.xml
+	repo sync
+
+	repo start a1x-jb-4.2 --all
+	repo forall -c 'git checkout -b branch_1 lichee/branch_1'
+	repo branch
+
+	开发人员有了 develop 分支,则可以进行一系列的开发工作。
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+

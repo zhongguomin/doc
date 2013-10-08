@@ -1,0 +1,280 @@
+
+frameworks/base/services/java/com/android/server/SystemServer.java
+
+frameworks/base/services/java/com/android/server/DongleService.java
+
+frameworks/base/core/jni/android_net_Dongle.cpp
+
+
+frameworks/base/dongle/java/android/net/dongle/DongleApnSetting.java
+frameworks/base/dongle/java/android/net/dongle/DongleNotifier.java
+frameworks/base/dongle/java/android/net/dongle/DongleManager.aidl
+frameworks/base/dongle/java/android/net/dongle/DongleDataTracker.java
+frameworks/base/dongle/java/android/net/dongle/DongleManager.java
+frameworks/base/dongle/java/android/net/dongle/DongleApnSetting.aidl
+
+
+packages/apps/Settings/src/com/android/settings/DongleInfo.java
+packages/apps/Settings/src/com/android/settings/net/DongleApnList.java
+packages/apps/Settings/src/com/android/settings/net/DongleSettings.java
+packages/apps/Settings/src/com/android/settings/net/DongleStateReceiver.java
+packages/apps/Settings/src/com/android/settings/net/DongleEnabler.java
+
+packages/apps/Settings/res/layout/dongle_info.xml
+packages/apps/Settings/res/xml/dongle_settings.xml
+
+
+
+logcat
+------------------------------------------------------------
+...
+D/UsbDeviceManager( 2145): disable UsbDeviceManager wakelock wlref = 1
+...
+I/USB3G   ( 1123): event { 'add', '/devices/platform/sw_hcd_host0/usb1/1-1', 'usb', '', 189, 3 }
+I/USB3G   ( 1123): path : '/sys/devices/platform/sw_hcd_host0/usb1/1-1'
+I/USB3G   ( 1123): VID :size 5,vid_path '/sys/devices/platform/sw_hcd_host0/usb1/1-1/idVendor',VID  '19d2
+I/USB3G   ( 1123): '.
+I/USB3G   ( 1123): PID :size 5,Pid_path '/sys/devices/platform/sw_hcd_host0/usb1/1-1/idProduct',PID  '0149
+I/USB3G   ( 1123): '.
+I/USB3G   ( 1123): cmd=/system/bin/usb_modeswitch.sh /system/etc/usb_modeswitch.d/19d2_0149 &,
+I/USB3G   ( 1123): excute ret:0,err:No buffer space available
+I/USB3G   ( 1123): free cmd
+D/Vold    ( 1114): Volume usbhost1 state changing 0 (No-Media) -> 1 (Idle-Unmounted)
+I/DirectVolume( 1114): Volume usbhost1 disk has changed
+W/Vold    ( 1114): Duplicate state (1)
+D/MountService( 2145): volume state changed for /mnt/usbhost1 (removed -> unmounted)
+D/MountService( 2145): sendStorageIntent Intent { act=android.intent.action.MEDIA_UNMOUNTED dat=file:///mnt/usbhost1 (has extras) } to UserHandle{-1}
+D/MediaScannerReceiver( 2578): action: android.intent.action.MEDIA_UNMOUNTED path: /mnt/usbhost1
+I/Vold    ( 1114): Volume::mountVol state : 1
+I/Vold    ( 1114): Volume::mountVol: mMountpoint /mnt/usbhost1
+I/Vold    ( 1114): /dev/block/vold/11:0 being considered for volume usbhost1
+D/Vold    ( 1114): Volume usbhost1 state changing 1 (Idle-Unmounted) -> 3 (Checking)
+I/Vold    ( 1114): Exfat::check
+D/MountService( 2145): volume state changed for /mnt/usbhost1 (unmounted -> checking)
+D/MountService( 2145): sendStorageIntent Intent { act=android.intent.action.MEDIA_CHECKING dat=file:///mnt/usbhost1 (has extras) } to UserHandle{-1}
+I/SurfaceFlinger( 1117): GraphicBufferAlloc::createGraphicBuffer 
+I//system/bin/fsck.exfat( 1114): exfatfsck 0.9.5
+I//system/bin/fsck.exfat( 1114): ERROR: failed to open `/dev/block/vold/11:0'.
+I/logwrapper( 1114): /system/bin/fsck.exfat terminated by exit(1)
+E/Vold    ( 1114): Filesystem check failed (unknown exit code 1)
+I//system/bin/fsck_msdos( 1114): ** /dev/block/vold/11:0
+I//system/bin/fsck_msdos( 1114): Can't open: No medium found
+I/logwrapper( 1114): /system/bin/fsck_msdos terminated by exit(8)
+E/Vold    ( 1114): Filesystem check failed (unknown exit code 8)
+I//system/bin/ntfs-3g.probe( 1114): Error opening '/dev/block/vold/11:0': No medium found
+I/logwrapper( 1114): /system/bin/ntfs-3g.probe terminated by exit(18)
+E/Vold    ( 1114): Filesystem check failed (unknown exit code 18)
+E/Vold    ( 1114): /dev/block/vold/11:0 failed FS checks (I/O error)
+D/Vold    ( 1114): Volume usbhost1 state changing 3 (Checking) -> 1 (Idle-Unmounted)
+E/Vold    ( 1114): mount part failed
+W/Vold    ( 1114): Duplicate state (1)
+E/Vold    ( 1114): Volume usbhost1 found no suitable devices for mounting :(
+W/Vold    ( 1114): Duplicate state (1)
+D/MountService( 2145): volume state changed for /mnt/usbhost1 (checking -> unmounted)
+D/MountService( 2145): sendStorageIntent Intent { act=android.intent.action.MEDIA_UNMOUNTED dat=file:///mnt/usbhost1 (has extras) } to UserHandle{-1}
+D/MountService( 2145): volume state changed for /mnt/usbhost1 (unmounted -> unmountable)
+D/MountService( 2145): sendStorageIntent Intent { act=android.intent.action.MEDIA_UNMOUNTABLE dat=file:///mnt/usbhost1 (has extras) } to UserHandle{-1}
+W/MountService( 2145): Insertion mount failed (-4)
+D/MediaScannerReceiver( 2578): action: android.intent.action.MEDIA_UNMOUNTED path: /mnt/usbhost1
+D/DirectVolume( 1114): Volume usbhost1 /mnt/usbhost1 disk 11:0 removed
+D/DirectVolume( 1114): DirectVolume : handleDiskRemoved : unmountVol
+E/Vold    ( 1114): Volume usbhost1 unmount request when not mounted
+D/Vold    ( 1114): Volume usbhost1 state changing 1 (Idle-Unmounted) -> 0 (No-Media)
+D/MountService( 2145): volume state changed for /mnt/usbhost1 (unmountable -> unmounted)
+D/MountService( 2145): sendStorageIntent Intent { act=unmounted dat=file:///mnt/usbhost1 (has extras) } to UserHandle{-1}
+D/MountService( 2145): volume state changed for /mnt/usbhost1 (unmounted -> removed)
+D/MountService( 2145): sendStorageIntent Intent { act=android.intent.action.MEDIA_REMOVED dat=file:///mnt/usbhost1 (has extras) } to UserHandle{-1}
+W/ResourceType( 2528): No known package when getting value for resource number 0x7f0b00a3
+...
+I/USB3G   ( 1123): event { 'add', '/devices/platform/sw_hcd_host0/usb1/1-1', 'usb', '', 189, 4 }
+I/USB3G   ( 1123): path : '/sys/devices/platform/sw_hcd_host0/usb1/1-1'
+I/USB3G   ( 1123): VID :size 5,vid_path '/sys/devices/platform/sw_hcd_host0/usb1/1-1/idVendor',VID  '19d2
+I/USB3G   ( 1123): '.
+I/USB3G   ( 1123): PID :size 5,Pid_path '/sys/devices/platform/sw_hcd_host0/usb1/1-1/idProduct',PID  '0124
+I/USB3G   ( 1123): '.
+I/USB3G   ( 1123): cmd=/system/bin/usb_modeswitch.sh /system/etc/usb_modeswitch.d/19d2_0124 &,
+I/USB3G   ( 1123): excute ret:0,err:No buffer space available
+I/USB3G   ( 1123): free cmd
+D/Vold    ( 1114): Volume usbhost1 state changing 0 (No-Media) -> 1 (Idle-Unmounted)
+D/MountService( 2145): volume state changed for /mnt/usbhost1 (removed -> unmounted)
+I/DirectVolume( 1114): Volume usbhost1 disk has changed
+W/Vold    ( 1114): Duplicate state (1)
+D/MountService( 2145): sendStorageIntent Intent { act=android.intent.action.MEDIA_UNMOUNTED dat=file:///mnt/usbhost1 (has extras) } to UserHandle{-1}
+D/MediaScannerReceiver( 2578): action: android.intent.action.MEDIA_UNMOUNTED path: /mnt/usbhost1
+I/Vold    ( 1114): Volume::mountVol state : 1
+I/Vold    ( 1114): Volume::mountVol: mMountpoint /mnt/usbhost1
+I/Vold    ( 1114): /dev/block/vold/8:0 being considered for volume usbhost1
+D/Vold    ( 1114): Volume usbhost1 state changing 1 (Idle-Unmounted) -> 3 (Checking)
+I/Vold    ( 1114): Exfat::check
+D/MountService( 2145): volume state changed for /mnt/usbhost1 (unmounted -> checking)
+D/MountService( 2145): sendStorageIntent Intent { act=android.intent.action.MEDIA_CHECKING dat=file:///mnt/usbhost1 (has extras) } to UserHandle{-1}
+I//system/bin/fsck.exfat( 1114): exfatfsck 0.9.5
+I/DirectVolume( 1114): Volume usbhost1 disk has changed
+D/Vold    ( 1114): Volume usbhost1 state changing 3 (Checking) -> 1 (Idle-Unmounted)
+D/MountService( 2145): volume state changed for /mnt/usbhost1 (checking -> unmounted)
+D/MountService( 2145): sendStorageIntent Intent { act=android.intent.action.MEDIA_UNMOUNTED dat=file:///mnt/usbhost1 (has extras) } to UserHandle{-1}
+D/MediaScannerReceiver( 2578): action: android.intent.action.MEDIA_UNMOUNTED path: /mnt/usbhost1
+I//system/bin/fsck.exfat( 1114): ERROR: failed to open `/dev/block/vold/8:0'.
+I/logwrapper( 1114): /system/bin/fsck.exfat terminated by exit(1)
+E/Vold    ( 1114): Filesystem check failed (unknown exit code 1)
+I//system/bin/fsck_msdos( 1114): ** /dev/block/vold/8:0
+I//system/bin/fsck_msdos( 1114): Can't open: No medium found
+I/logwrapper( 1114): /system/bin/fsck_msdos terminated by exit(8)
+E/Vold    ( 1114): Filesystem check failed (unknown exit code 8)
+I//system/bin/ntfs-3g.probe( 1114): Error opening '/dev/block/vold/8:0': No medium found
+I/logwrapper( 1114): /system/bin/ntfs-3g.probe terminated by exit(18)
+E/Vold    ( 1114): Filesystem check failed (unknown exit code 18)
+E/Vold    ( 1114): /dev/block/vold/8:0 failed FS checks (I/O error)
+W/Vold    ( 1114): Duplicate state (1)
+E/Vold    ( 1114): mount part failed
+W/Vold    ( 1114): Duplicate state (1)
+E/Vold    ( 1114): Volume usbhost1 found no suitable devices for mounting :(
+W/Vold    ( 1114): Duplicate state (1)
+D/MountService( 2145): volume state changed for /mnt/usbhost1 (unmounted -> unmountable)
+D/MountService( 2145): sendStorageIntent Intent { act=android.intent.action.MEDIA_UNMOUNTABLE dat=file:///mnt/usbhost1 (has extras) } to UserHandle{-1}
+W/MountService( 2145): Insertion mount failed (-4)
+W/Settings( 2693): Setting auto_time_zone has moved from android.provider.Settings.System to android.provider.Settings.Global, returning read-only value.
+D/AlarmManagerService( 2145): Kernel timezone updated to -480 minutes west of GMT
+W/Settings( 2693): Setting auto_time_zone has moved from android.provider.Settings.System to android.provider.Settings.Global, returning read-only value.
+D/AlarmManagerService( 2145): Kernel timezone updated to -480 minutes west of GMT
+D/CAT     ( 2693): CatService: Reinitialize the Service with SIMRecords and UiccCardApplication
+D/CAT     ( 2693): CatService: sr changed reinitialize and return current sInstance
+W/SignalStrength( 2528): getGsmLevel=4
+W/SignalStrength( 2528): getLevel=4
+D/CAT     ( 2693): CatService: SIM ready. Reporting STK service running now...
+D/MccTable( 2693): updateMccMncConfiguration: mcc=460, mnc=1
+D/TelephonyManager( 2693): getLteOnCdmaMode=0 curVal=-1 product_type='' lteOnCdmaProductType=''
+D/MccTable( 2693): locale set to zh_cn
+I/ActivityManager( 2145): Config changes=1400 {1.0 460mcc1mnc zh_CN ldltr sw480dp w800dp h432dp 160dpi nrml land finger -keyb/v/h -nav/h s.16}
+I/pppd    ( 8443): Starting pppd 
+I/pppd    ( 8444): PORT: /dev/ttyUSB4 115200 
+I/pppd    ( 8445): USER: (null) 
+I/pppd    ( 8446): PSWD: (null) 
+I/pppd    ( 8447): CONN: /system/bin/chat -v -s -S TIMEOUT 60 ABORT 'BUSY' ABORT 'ERROR' ABORT '+CME ERROR:' '' AT '' ATDT*99# CONNECT 
+I/pppd    ( 8448): DISC: /system/bin/chat -v -s -S ABORT 'BUSY' ABORT 'ERROR' ABORT '+CME ERROR:' 
+I/pppd    ( 8449): Serial connection established.
+D/pppd    ( 8449): using channel 3
+I/pppd    ( 8449): Using interface ppp0
+I/pppd    ( 8449): Connect: ppp0 <--> /dev/ttyUSB4
+D/pppd    ( 8449): sent [LCP ConfReq id=0x1 <asyncmap 0x0> <magic 0x54f19e99> <pcomp> <accomp>]
+D/pppd    ( 8449): rcvd [LCP ConfReq id=0x0 <asyncmap 0x0> <auth chap MD5> <magic 0xfaa88d> <pcomp> <accomp>]
+D/pppd    ( 8449): sent [LCP ConfAck id=0x0 <asyncmap 0x0> <auth chap MD5> <magic 0xfaa88d> <pcomp> <accomp>]
+D/pppd    ( 8449): rcvd [LCP ConfAck id=0x1 <asyncmap 0x0> <magic 0x54f19e99> <pcomp> <accomp>]
+D/pppd    ( 8449): rcvd [LCP DiscReq id=0x1 magic=0xfaa88d]
+D/pppd    ( 8449): rcvd [CHAP Challenge id=0x1 <9459cbba5a63667c84e904269cec7e0c>, name = "UMTS_CHAP_SRVR"]
+D/pppd    ( 8449): sent [CHAP Response id=0x1 <b2d61987cf6c4c48bbfdcd000a83f1d9>, name = "(null)"]
+D/pppd    ( 8449): rcvd [CHAP Success id=0x1 ""]
+I/pppd    ( 8449): CHAP authentication succeeded
+D/pppd    ( 8449): sent [CCP ConfReq id=0x1 <deflate 15> <deflate(old#) 15> <bsd v1 15>]
+D/pppd    ( 8449): sent [IPCP ConfReq id=0x1 <addr 0.0.0.0> <ms-dns1 0.0.0.0> <ms-dns3 0.0.0.0>]
+D/pppd    ( 8449): rcvd [LCP ProtRej id=0x2 80 fd 01 01 00 0f 1a 04 78 00 18 04 78 00 15 03 2f]
+D/pppd    ( 8449): rcvd [IPCP ConfNak id=0x1 <ms-dns1 10.11.12.13> <ms-dns3 10.11.12.14> <ms-wins 10.11.12.13> <ms-wins 10.11.12.14>]
+D/pppd    ( 8449): sent [IPCP ConfReq id=0x2 <addr 0.0.0.0> <ms-dns1 10.11.12.13> <ms-dns3 10.11.12.14>]
+D/pppd    ( 8449): rcvd [IPCP ConfNak id=0x2 <ms-dns1 10.11.12.13> <ms-dns3 10.11.12.14> <ms-wins 10.11.12.13> <ms-wins 10.11.12.14>]
+D/pppd    ( 8449): sent [IPCP ConfReq id=0x3 <addr 0.0.0.0> <ms-dns1 10.11.12.13> <ms-dns3 10.11.12.14>]
+D/pppd    ( 8449): rcvd [IPCP ConfReq id=0x0]
+D/pppd    ( 8449): sent [IPCP ConfNak id=0x0 <addr 0.0.0.0>]
+D/pppd    ( 8449): rcvd [IPCP ConfNak id=0x3 <addr 10.111.244.70> <ms-dns1 210.21.196.6> <ms-dns3 221.5.88.88>]
+D/pppd    ( 8449): sent [IPCP ConfReq id=0x4 <addr 10.111.244.70> <ms-dns1 210.21.196.6> <ms-dns3 221.5.88.88>]
+D/pppd    ( 8449): rcvd [IPCP ConfReq id=0x1]
+D/pppd    ( 8449): sent [IPCP ConfAck id=0x1]
+D/pppd    ( 8449): rcvd [IPCP ConfAck id=0x4 <addr 10.111.244.70> <ms-dns1 210.21.196.6> <ms-dns3 221.5.88.88>]
+W/pppd    ( 8449): Could not determine remote IP address: defaulting to 10.64.64.64
+I/pppd    ( 8449): local  IP address 10.111.244.70
+I/pppd    ( 8449): remote IP address 10.64.64.64
+I/pppd    ( 8449): primary   DNS address 210.21.196.6
+I/pppd    ( 8449): secondary DNS address 221.5.88.88
+D/pppd    ( 8449): Script /etc/ppp/ip-up started (pid 8457)
+D/pppd    ( 8449): Script /etc/ppp/ip-up finished (pid 8457), status = 0x0
+D/ConnectivityService( 2145): ConnectivityChange for mobile: CONNECTED/CONNECTED
+D/ConnectivityService( 2145): renew ip, routesChanged is false.
+D/ConnectivityService( 2145): renew ip, newLp != null 
+D/Tethering( 2145): MasterInitialState.processMessage what=3
+W/SignalStrength( 2528): getGsmLevel=4
+W/SignalStrength( 2528): getLevel=4
+I/CheckinService( 2866): Preparing to send checkin request
+I/EventLogService( 2866): Accumulating logs since 1374719190486
+I/CheckinTask( 2866): Sending checkin request (1545 bytes)
+I/CheckinTask( 2866): Checkin success: https://android.clients.google.com/checkin (1 requests sent)
+W/SignalStrength( 2693): Size of signalstrength parcel:60
+W/SignalStrength( 2693): Signal before validate=SignalStrength: 30 99 -1 -1 -1 -1 -1 99 2147483647 2147483647 2147483647 2147483647 gsm|lte
+W/SignalStrength( 2693): Signal after validate=SignalStrength: 30 99 -120 -160 -120 -1 -1 99 2147483647 2147483647 2147483647 2147483647 gsm|lte
+W/SignalStrength( 2145): Size of signalstrength parcel:164
+W/SignalStrength( 2145): getGsmLevel=4
+W/SignalStrength( 2528): Size of signalstrength parcel:168
+W/SignalStrength( 2145): getLevel=4
+W/SignalStrength( 2528): getGsmLevel=4
+W/SignalStrength( 2528): getLevel=4
+I/GTalkService/c( 2866): [AndroidEndpoint@1098137200] connect: acct=1000000, state=CONNECTING
+I/SurfaceFlinger( 1117): GraphicBufferAlloc::createGraphicBuffer 
+V/audio_hw_primary( 1120): start_output_stream, line: 1052
+E/audio_hw_primary( 1120): =======  ========================headset_on is=0 === headphone_on is 0 ====speaker_on is 2==earpiece_on is  0 ==bt_on is 0===
+E/audio_hw_primary( 1120): select_output_device, out_devices: 2, mode: 0
+E/audio_hw_primary( 1120): ****LINE:1016,FUNC:select_output_device
+D/audio_hw_primary( 1120): start_output_stream: card:0, port:0, rate:44100
+V/alsa_pcm( 1120): pcm_open_req, playback card: 0, device: 0, req_rate: 44100
+V/alsa_pcm( 1120): pcm_open_req try rate: 44100
+V/alsa_pcm( 1120): pcm_open_req OK config->rate: 44100
+V/audio_hw_primary( 1120): do not use out resampler
+I/SurfaceFlinger( 1117): GraphicBufferAlloc::createGraphicBuffer 
+D/dalvikvm( 2716): GC_FOR_ALLOC freed 3316K, 24% free 6234K/8160K, paused 51ms, total 70ms
+I/dalvikvm-heap( 2716): Grow heap (frag case) to 6.487MB for 313360-byte allocation
+D/dalvikvm( 2716): GC_FOR_ALLOC freed 366K, 28% free 6174K/8468K, paused 58ms, total 58ms
+D/dalvikvm( 2716): GC_FOR_ALLOC freed 972K, 39% free 5229K/8468K, paused 36ms, total 37ms
+I/dalvikvm-heap( 2716): Grow heap (frag case) to 6.432MB for 1286224-byte allocation
+D/dalvikvm( 2716): GC_FOR_ALLOC freed <1K, 34% free 6485K/9728K, paused 35ms, total 35ms
+D/ConnectivityService( 2145): handleInetConditionHoldEnd: net=0, condition=100, published condition=0
+W/SignalStrength( 2528): getGsmLevel=4
+W/SignalStrength( 2528): getLevel=4
+...
+I/pppd    ( 8449): Terminating on signal 15
+I/pppd    ( 8449): Connect time 0.7 minutes.
+I/pppd    ( 8449): Sent 22082 bytes, received 181720 bytes.
+D/pppd    ( 8449): Script /etc/ppp/ip-down started (pid 8945)
+D/pppd    ( 8449): sent [LCP TermReq id=0x2 "User request"]
+I/pppd    ( 8449): Modem hangup
+I/pppd    ( 8449): Connection terminated.
+W/Netd    ( 1115): No subsystem found in netlink event
+D/NetlinkEvent( 1115): Unexpected netlink message. type=0x11
+D/pppd    ( 8449): Waiting for 1 child processes...
+D/pppd    ( 8449):   script /etc/ppp/ip-down, pid 8945
+D/pppd    ( 8449): Script /etc/ppp/ip-down finished (pid 8945), status = 0x0
+D/DirectVolume( 1114): Volume usbhost1 /mnt/usbhost1 disk 8:0 removed
+D/DirectVolume( 1114): DirectVolume : handleDiskRemoved : unmountVol
+E/Vold    ( 1114): Volume usbhost1 unmount request when not mounted
+D/Vold    ( 1114): Volume usbhost1 state changing 1 (Idle-Unmounted) -> 0 (No-Media)
+D/MountService( 2145): volume state changed for /mnt/usbhost1 (unmountable -> unmounted)
+D/MountService( 2145): sendStorageIntent Intent { act=unmounted dat=file:///mnt/usbhost1 (has extras) } to UserHandle{-1}
+D/MountService( 2145): volume state changed for /mnt/usbhost1 (unmounted -> removed)
+D/MountService( 2145): sendStorageIntent Intent { act=android.intent.action.MEDIA_REMOVED dat=file:///mnt/usbhost1 (has extras) } to UserHandle{-1}
+W/ResourceType( 2528): No known package when getting value for resource number 0x7f0b00a3
+D/ConnectivityService( 2145): ConnectivityChange for mobile: DISCONNECTED/DISCONNECTED
+D/ConnectivityService( 2145): Attempting to switch to wifi
+D/DongleDataTracker( 2145): reconnect
+D/NetUtils( 2145): android_net_utils_resetConnections in env=0x6803a0a0 clazz=0x52700001 iface=ppp0 mask=0x3
+D/ConnectivityService( 2145): Attempting to switch to ETHERNET
+D/ConnectivityService( 2145): Attempting to switch to TYPE_DONGLE
+D/ConnectivityService( 2145): renew ip, routesChanged is false.
+D/ConnectivityService( 2145): resetConnections(ppp0, 3)
+I/dalvikvm( 2145): Jit: resizing JitTable from 8192 to 16384
+D/CAT     ( 2693): CatService: Reinitialize the Service with SIMRecords and UiccCardApplication
+D/CAT     ( 2693): CatService: sr changed reinitialize and return current sInstance
+I/pppd    ( 8982): pppd exited with 16 
+D/CAT     ( 2693): CatService: Reinitialize the Service with SIMRecords and UiccCardApplication
+D/CAT     ( 2693): CatService: sr changed reinitialize and return current sInstance
+I/SurfaceFlinger( 1117): GraphicBufferAlloc::createGraphicBuffer 
+D/Tethering( 2145): MasterInitialState.processMessage what=3
+D/ConnectivityService( 2145): handleInetConditionChange: no active default network - ignore
+D/dalvikvm( 2675): GC_CONCURRENT freed 1210K, 22% free 4811K/6128K, paused 17ms+11ms, total 141ms
+W/Smack/Packet( 2866): notify conn break (IOEx), close connection
+E/GTalkService( 2866): connectionClosed: no XMPPConnection - That's strange!
+D/ConnectivityService( 2145): handleInetConditionChange: no active default network - ignore
+...
+W/PowerUI ( 2528): unknown intent: Intent { act=android.intent.action.ACTION_POWER_CONNECTED flg=0x8000010 }
+W/PowerUI ( 2528): unknown intent: Intent { act=android.intent.action.ACTION_POWER_CONNECTED flg=0x8000010 }
+D/UsbDeviceManager( 2145): enable UsbDeviceManager wakelock wlref = 0
+D/UsbDeviceManager( 2145): enable UsbDeviceManager wakelock wlref = 1
+...
+
+
+------------------------------------------------------------

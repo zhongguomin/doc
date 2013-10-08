@@ -8,6 +8,23 @@ Bluetooth Study
 ======================================================================================================================
 
 一	涉及代码路径
+    android
+    packages/apps/Settings/src/com/android/settings/bluetooth
+    packages/apps/Bluetooth/src/com/android/bluetooth
+    frameworks/base/core/java/android/bluetooth
+    system/bluetooth
+    external/bluetooth
+    external/bluetooth_mtk
+    device/softwinner/wing-s780bt/bluetooth
+    device/softwinner/common/hardware/realtek/bluetooth
+
+    hardware/libhardware/include/hardware/
+
+
+    lichee
+    linux-3.4/drivers/bluetooth
+    linux-3.4/net/bluetooth
+    linux-3.4/include/net/bluetooth
 
 
 

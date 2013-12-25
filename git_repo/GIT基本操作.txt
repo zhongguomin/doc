@@ -1,0 +1,195 @@
+GIT 基本操作
+	本文档建议在 ubuntu 下，使用 gedit 查看
+
+
+导读
+===========================================================================
+第一部分		工程师日常开发
+第二部分		版本发布操作
+第三部分		GIT常用工具
+
+
+
+说明
+===========================================================================
+1	常用的 GIT 学习网址
+	Git 参考手册		
+		http://gitref.cyj.me/zh/index.html
+	Git Magic		
+		http://www-cs-students.stanford.edu/~blynn/gitmagic/intl/zh_cn/ch01.html
+	Git Community Book 中文版
+		http://gitbook.liuhui998.com/
+	Git 使用指南
+		http://www.linuxgem.org/user_files/linuxgem/Image/git-tutor.pdf
+	Git Immersion
+		http://gitimmersion.googol.im/index.html
+
+2	本文档更新日志
+	2013-01-11		创建
+	2013-06-13		更新
+
+
+
+第一部分		工程师日常开发
+===========================================================================
+1	克隆代码
+	git clone url
+	比如
+	git clone git@192.168.1.137:a10/android.git
+
+2	查看当前分支及远程服务器分支情况
+	git brane
+	git brane -r
+
+3	查看当前状态
+	git status
+	git status -s
+	
+4	修改代码
+	vim filename
+	git add filename
+	git commint -m ""
+	git push
+
+	如果提示冲突，请先跟新本地代码
+	git pull
+	然后再提交
+	git push
+
+	删除文件
+	git rm filename
+
+5	修改文件后，取消修改
+	git checkout -- <file>
+
+	如果修改的文件，已经git add了，需要取消修改
+	git reset HEAD <file>
+	git status
+	git checkout -- <file>
+
+	如果修改的文件，已经git commit 了，需要取消修改
+	git revert HEAD    		撤销前一次 commit
+	git revert commit_id	撤销指定的提交，撤销也会作为一次提交进行保存。	
+
+
+	代码还原到指定提交或则tag
+	git reset --hard commint_id
+	git reset --hard Topwise-release-v1.0.2	取出v1.0.2版本
+
+	本地提交后，修改提交注释
+	git commit --amend
+
+	
+6	查看提交日志
+	git log
+	git log --oneline
+	git log --author=name
+	git log filename
+	git log dirname
+
+7	尚未缓存的改动
+	git diff
+	查看已缓存的改动
+	git diff --cached
+	
+8	查看文件的某一行是哪位修改的
+	git blame <file>
+
+9	查看指定提交的修改
+	git show commit_id
+
+
+
+
+第二部分		版本发布操作
+===========================================================================
+1	查看tag
+		git tag
+	创建tag，为 commit_id 的对象添加了一个tag，如果不指定 commit_id，会为最近的一个commit对象添加tag
+		git tag tag-name commit_id
+	提交tag到服务器上
+		git push origin tag-name
+
+
+2	创建分支
+	git branch <branch-name>
+	切换分支
+	git checkout <branch-name>
+	重命名分支
+	git branch -rm <old-branch> <new-branch>
+
+	如何删除本地分支
+	git branch -d branch_name
+
+	推送本地分支到远程服务器
+	git push <remote> <branch-name>[:<remote-branch-name>]
+	远程分支名如果省略，则使用本地分支名作为远程分支名
+	git push <remote> <branch-name>
+	git push origin a721_cts_branch 	把分支提交到服务器上
+	删除远程分支命令
+	git push origin  :branch_name
+	例如：
+	git push origin  :4.1_lichee_A13
+
+3	合并分支操作
+	git merge <brane-name>
+	
+	git rebase <brane-name>
+
+
+4	添加版本库
+	git add .
+	git commit -m ""
+	git push origin master
+
+	git branch allwinner
+	git push origin allwinner
+
+
+5	
+
+
+
+第三部分		GIT常用工具
+===========================================================================
+1	git clean -fd			删除一些在git 仓库中不存在的文件
+
+2	git patch 补丁使用
+	使用git format-patch生成所需要的patch:
+	某次提交以后的所有patch:		git format-patch 4e16				--4e16指的是commit名
+	从根到指定提交的所有patch:		git format-patch --root 4e16
+	某两次提交之间的所有patch:		git format-patch 365a..4e16			--365a和4e16分别对应两次提交的名称
+	某次提交（含）之前的几次提交：	git format-patch –n 07fe			--n指patch数，07fe对应提交的名称
+	故，单次提交即为：				git format-patch -1 07fe
+
+	打入补丁
+	git am patch_name
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

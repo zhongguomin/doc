@@ -489,15 +489,15 @@ gitolite安装帐号		git
 
 6	测试 repo 下载
 
-	mkdir lichee
-	cd lichee
-	repo init -u ssh://git@192.168.1.33/git_repo/a13/manifest.git -m lichee.xml
-	repo sync
+		mkdir lichee
+		cd lichee
+		repo init -u ssh://git@192.168.1.33/git_repo/a13/manifest.git -m lichee.xml
+		repo sync
 
-	mkdir android
-	cd android
-	repo init -u ssh://git@192.168.1.33/git_repo/a13/manifest.git -m android.xml
-	repo sync
+		mkdir android
+		cd android
+		repo init -u ssh://git@192.168.1.33/git_repo/a13/manifest.git -m android.xml
+		repo sync
 
 
 7	管理员创建开发分支
@@ -713,11 +713,61 @@ gitolite安装帐号		git
 	
 
 
+git push自动发送邮件
+
+       config hooks.mailinglist    = "ernest@example.com, chiang@example.com" # 可以寄信給多個人
+        config hooks.envelopesender = git@example.com # 寄件者的信箱地址 email address of sender
+        config hooks.emailprefix    = "[testing] " # 信件主旨的開頭字串
+        config hooks.showrev        = "git show -C %s; echo" # 原本只有列出有改動的檔案們，在此我改為列出有改動的檔案內容
+
+       config hooks.showrev        = "git rev-list -1 --pretty %s"
+       config hooks.showrev        = "git rev-list -1 --pretty %s"
+
+- See more at: http://talk.ernestchiang.com/2012/01/setup-gitolite-hook-post-receive-email.html#sthash.HH2pIEmb.dpuf
+
+
+repo gitolite
+    config hooks.mailinglist = gitolite-commits@example.tld
+    config hooks.emailprefix = "[gitolite] "
+    config foo.bar = ""
+    config foo.baz =
 
 
 
+# Config 
+# ------ 
+# hooks.mailinglist 
+#	This is the list that all pushes will go to; leave it blank to not send 
+# 	emails for every ref update. 
+# hooks.announcelist 
+# 	This is the list that all pushes of annotated tags will go to. Leave it 
+# 	blank to default to the mailinglist field. The announce emails lists 
+# 	the short log summary of the changes since the last annotated tag. 
+# hooks.envelopesender 
+# 	If set then the -f option is passed to sendmail to allow the envelope 
+# 	sender address to be set 
+# hooks.emailprefix 
+# 	All emails have their subjects prefixed with this prefix, or "[SCM]" 
+# 	if emailprefix is unset, to aid filtering 
+# hooks.showrev 
+# 	The shell command used to format each revision in the email, with 
+# 	"%s" replaced with the commit id. Defaults to "git rev-list -1 --pretty %s", 
+#	displaying the commit id, author, date and log 
+# 	message. To list full patches separated by a blank line, you 
+# 	could set this to "git show -C %s; echo". 
+# 	To list a gitweb/cgit URL *and* a full patch for each change set, use this: 
+# 	"t=%s; printf 'http://.../?id=%%s' \$t; echo;echo; git show -C \$t; echo" 
+# 	Be careful if "..." contains things that will be expanded by shell "eval" 
+# 	or printf. 
+# hooks.emailmaxlines 
+# 	The maximum number of lines that should be included in the generated 
+# 	email body. If not specified, there is no limit. 
+# 	Lines beyond the limit are suppressed and counted, and a final 
+# 	line is added indicating the number of suppressed lines. 
+# - See more at: http://talk.ernestchiang.com/2012/01/setup-gitolite-hook-post-receive-email.html#sthash.HH2pIEmb.QYkx7DdZ.dpuf
 
 
+makemap hash /etc/mail/aliases.db < /etc/mail/aliases  
 
 
 

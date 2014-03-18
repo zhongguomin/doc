@@ -1,0 +1,119 @@
+
+
+锁屏界面 时钟加入 AM PM
+
+
+涉及的文件
+/broncho/all/ics/longyanliang/android/frameworks/base/core/res/res/layout-sw480dp/keyguard_screen_status_land.xml
+                                                          /res/res/layout-sw480dp/keyguard_screen_status_port.xml
+/broncho/all/ics/longyanliang/android/frameworks/base/core/java/com/android/internal/widget/DigitalClock.java
+/broncho/all/ics/longyanliang/android/frameworks/base/policy/src/com/android/internal/policy/impl/LockScreen.java
+
+
+说下步骤
+1   在 DigitalClock.java 文件中，打开语句
+        static class AmPm {
+        	private TextView mAmPmTextView;
+        	private String mAmString, mPmString;
+
+        	AmPm(View parent, Typeface tf) {
+            	// No longer used, uncomment if we decide to use AM/PM indicator again
+            	mAmPmTextView = (TextView) parent.findViewById(R.id.am_pm);
+
+2  在 keyguard_screen_status_land.xml ， keyguard_screen_status_port.xml 中分别加入 am_pm 的 textview
+		<TextView android:id="@+id/am_pm"
+            	android:layout_width="wrap_content"
+            	android:layout_height="wrap_content"
+            	android:singleLine="true"
+			android:ellipsize="none"
+			android:textSize="28sp"
+			android:layout_marginLeft="8dip"
+			android:layout_toRightOf="@id/timeDisplayBackground"
+			android:layout_alignBaseline="@id/timeDisplayBackground"
+			android:textAppearance="?android:attr/textAppearanceMedium"
+			android:textColor="@color/lockscreen_clock_background"
+			android:layout_marginBottom="6dip"
+			/>
+
+    由于默认的时间显示字体比较大，所以需要修改大小，现改为 60sp
+
+
+直接给出 
+    <com.android.internal.widget.DigitalClock android:id="@+id/time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dip"
+        android:layout_marginBottom="8dip">
+
+        <!-- Because we can't have multi-tone fonts, we render two TextViews, one on
+        top of the other. Hence the redundant layout... -->
+        <TextView android:id="@+id/timeDisplayBackground"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:ellipsize="none"
+            android:textSize="60sp"           //zgm
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="@color/lockscreen_clock_background"
+            android:layout_marginBottom="6dip"
+            />
+
+        <TextView android:id="@+id/timeDisplayForeground"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:ellipsize="none"
+            android:textSize="60sp"       //zgm
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="@color/lockscreen_clock_foreground"
+            android:layout_marginBottom="6dip"
+            />
+
+        <!-- add by zgm -->
+        <TextView android:id="@+id/am_pm"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:ellipsize="none"
+            android:textSize="28sp"
+            android:layout_marginLeft="8dip"
+            android:layout_toRightOf="@id/timeDisplayBackground"
+            android:layout_alignBaseline="@id/timeDisplayBackground"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="@color/lockscreen_clock_background"
+            android:layout_marginBottom="6dip"
+            />
+
+    </com.android.internal.widget.DigitalClock>
+
+
+LockScreen.java 文件不要修改，
+
+
+涉及的文件
+/broncho/all/ics/longyanliang/android/frameworks/base/core/res/res/layout-sw480dp/keyguard_screen_status_land.xml
+                                                          /res/res/layout-sw480dp/keyguard_screen_status_port.xml
+/broncho/all/ics/longyanliang/android/frameworks/base/core/java/com/android/internal/widget/DigitalClock.java
+/broncho/all/ics/longyanliang/android/frameworks/base/policy/src/com/android/internal/policy/impl/LockScreen.java
+
+然后就是编译，得到相应的文件
+android.policy.jar
+framework.jar
+framework-res.apk
+
+
+注意编译顺序
+首先要编译       framework-res.apk
+然后编译         framework.jar
+最后编译         android.policy.jar
+
+三个编译完后，
+adb remount
+adb push android.policy.jar /system/framework/
+adb push framework.jar /system/framework/
+adb push framework-res.apk /system/framework/
+
+
+
+
+

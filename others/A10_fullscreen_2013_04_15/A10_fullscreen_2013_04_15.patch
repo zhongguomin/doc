@@ -1,0 +1,243 @@
+diff --git a/frameworks/base/packages/SystemUI/src/com/android/systemui/SystemUI.java b/frameworks/base/packages/SystemUI/src/com/android/systemui/SystemUI.java
+index 2110483..55f4ef2 100644
+--- a/frameworks/base/packages/SystemUI/src/com/android/systemui/SystemUI.java
++++ b/frameworks/base/packages/SystemUI/src/com/android/systemui/SystemUI.java
+@@ -26,7 +26,11 @@ public abstract class SystemUI {
+     public Context mContext;
+ 
+     public abstract void start();
+-    
++  
++    // BEGIN broncho-add zhongguomin 
++    public abstract void onReceive(String action);
++    // END broncho-add
++ 
+     protected void onConfigurationChanged(Configuration newConfig) {
+     }
+ 
+diff --git a/frameworks/base/packages/SystemUI/src/com/android/systemui/SystemUIService.java b/frameworks/base/packages/SystemUI/src/com/android/systemui/SystemUIService.java
+index 16f8f5c..6c68900 100644
+--- a/frameworks/base/packages/SystemUI/src/com/android/systemui/SystemUIService.java
++++ b/frameworks/base/packages/SystemUI/src/com/android/systemui/SystemUIService.java
+@@ -23,6 +23,7 @@ import android.app.Service;
+ import android.content.BroadcastReceiver;
+ import android.content.Context;
+ import android.content.Intent;
++import android.content.IntentFilter;
+ import android.content.pm.PackageManager;
+ import android.content.res.Configuration;
+ import android.os.Binder;
+@@ -31,10 +32,18 @@ import android.os.RemoteException;
+ import android.os.ServiceManager;
+ import android.util.Slog;
+ import android.view.IWindowManager;
++import android.text.TextUtils;
++import android.util.Log;
++
+ 
+ public class SystemUIService extends Service {
+     static final String TAG = "SystemUIService";
+ 
++    // BEGIN broncho-add zhongguomin
++    public static final String ACTION_HIDE_STATUS_BAR = "com.android.action.HIDE_BAR";
++    public static final String ACTION_DISPLAY_STATUS_BAR = "com.android.action_DISPLAY_BAR";
++    // END broncho
++
+     /**
+      * The class names of the stuff to start.
+      */
+@@ -103,6 +112,14 @@ public class SystemUIService extends Service {
+             Slog.d(TAG, "running: " + mServices[i]);
+             mServices[i].start();
+         }
++
++        // BEGIN broncho-add zhongguomin
++        // register broadcast receiver
++        IntentFilter intentFilter = new IntentFilter();
++        intentFilter.addAction(ACTION_DISPLAY_STATUS_BAR);
++        intentFilter.addAction(ACTION_HIDE_STATUS_BAR);
++        registerReceiver(mStatusBarReceiver, intentFilter);
++        // END broncho
+     }
+ 
+     @Override
+@@ -145,5 +162,22 @@ public class SystemUIService extends Service {
+             }
+         }
+     }
++
++    // BEGIN broncho-add zhongguomin
++    BroadcastReceiver mStatusBarReceiver = new BroadcastReceiver() {
++        @Override
++        public void onReceive(Context context, Intent intent) {
++            if (intent != null && !TextUtils.isEmpty(intent.getAction())) {
++                String action = intent.getAction();
++                final int N = SERVICES.length;
++                for (int i = 0; i < N; i++) {
++                    Slog.d(TAG, "Services: " + mServices[i] + " onReceive()");
++                    mServices[i].onReceive(action);
++                }
++            }
++        }
++    };
++    // END broncho
++
+ }
+ 
+diff --git a/frameworks/base/packages/SystemUI/src/com/android/systemui/power/PowerUI.java b/frameworks/base/packages/SystemUI/src/com/android/systemui/power/PowerUI.java
+index fe7d5aa..78c3b89 100644
+--- a/frameworks/base/packages/SystemUI/src/com/android/systemui/power/PowerUI.java
++++ b/frameworks/base/packages/SystemUI/src/com/android/systemui/power/PowerUI.java
+@@ -35,6 +35,7 @@ import android.media.Ringtone;
+ import android.media.RingtoneManager;
+ import android.provider.Settings;
+ import android.util.Slog;
++import android.util.Log;
+ import android.view.View;
+ import android.view.WindowManager;
+ import android.widget.TextView;
+@@ -299,5 +300,17 @@ public class PowerUI extends SystemUI {
+         pw.print("bucket: ");
+         pw.println(Integer.toString(findBatteryLevelBucket(mBatteryLevel)));
+     }
++
++    /*
++     * broncho-add zhongguomin
++     */
++    @Override
++    public void onReceive(String action) {
++        Log.d(TAG, "At PowerUI.java onReceive action: " + action );
++    }
++
+ }
+ 
++
++
++
+diff --git a/frameworks/base/packages/SystemUI/src/com/android/systemui/statusbar/StatusBar.java b/frameworks/base/packages/SystemUI/src/com/android/systemui/statusbar/StatusBar.java
+index 2be35b7..b35fdfd 100644
+--- a/frameworks/base/packages/SystemUI/src/com/android/systemui/statusbar/StatusBar.java
++++ b/frameworks/base/packages/SystemUI/src/com/android/systemui/statusbar/StatusBar.java
+@@ -43,9 +43,12 @@ import com.android.internal.statusbar.StatusBarNotification;
+ 
+ import com.android.systemui.SystemUI;
+ import com.android.systemui.R;
++import com.android.systemui.SystemUIService;
++import android.content.SharedPreferences;
+ 
+ public abstract class StatusBar extends SystemUI implements CommandQueue.Callbacks {
+     static final String TAG = "StatusBar";
++    static final String BRONCHO_TAG = "Broncho_Debug";
+     private static final boolean SPEW = false;
+ 
+     protected CommandQueue mCommandQueue;
+@@ -59,10 +62,25 @@ public abstract class StatusBar extends SystemUI implements CommandQueue.Callbac
+ 
+     private DoNotDisturb mDoNotDisturb;
+ 
++    // BEGIN broncho-add zhongguomin
++    private View mStatusBarView;
++    private int mStatusBarHeight;
++    private WindowManager.LayoutParams mStatusBarLayoutParams;
++    public static final String BRONCHO_STATUSBAR_PREFS = "broncho_statusbar_prefs";  
++    // END broncho
++
+     public void start() {
+         // First set up our views and stuff.
+         View sb = makeStatusBarView();
+ 
++        // BEGIN broncho-add zhongguomin
++        if(getAndSetStatusBarPref(0, false)) {
++            sb.setVisibility(View.VISIBLE);
++        } else {
++            sb.setVisibility(View.INVISIBLE);
++        }
++        // END
++
+         // Connect in to the status bar manager service
+         StatusBarIconList iconList = new StatusBarIconList();
+         ArrayList<IBinder> notificationKeys = new ArrayList<IBinder>();
+@@ -110,6 +128,7 @@ public abstract class StatusBar extends SystemUI implements CommandQueue.Callbac
+ 
+         // Put up the view
+         final int height = getStatusBarHeight();
++        mStatusBarHeight = height;
+ 
+         final WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
+                 ViewGroup.LayoutParams.MATCH_PARENT,
+@@ -132,11 +151,15 @@ public abstract class StatusBar extends SystemUI implements CommandQueue.Callbac
+         // very little screen real-estate and is updated fairly frequently.  By using CPU rendering
+         // for the status bar, we prevent the GPU from having to wake up just to do these small
+         // updates, which should help keep power consumption down.
+-
++  
+         lp.gravity = getStatusBarGravity();
+         lp.setTitle("StatusBar");
+         lp.packageName = mContext.getPackageName();
+         lp.windowAnimations = R.style.Animation_StatusBar;
++
++        mStatusBarLayoutParams = lp;
++        mStatusBarView = sb;
++
+         WindowManagerImpl.getDefault().addView(sb, lp);
+ 
+         if (SPEW) {
+@@ -173,4 +196,58 @@ public abstract class StatusBar extends SystemUI implements CommandQueue.Callbac
+         }
+         return vetoButton;
+     }
++
++    /*
++     * broncho-add zhongguomin
++     */
++    @Override
++    public void onReceive(String action) {
++        Log.d(BRONCHO_TAG, "StatusBar.java onReceive() action: " + action);
++        if (SystemUIService.ACTION_DISPLAY_STATUS_BAR.equals(action)) {
++            // method 1, but open camera, will be show statusbar
++            //mStatusBarLayoutParams.height = mStatusBarHeight;
++            //WindowManagerImpl.getDefault().updateViewLayout(mStatusBarView,
++            //   mStatusBarLayoutParams);
++
++            // method 2
++            mStatusBarView.setVisibility(View.VISIBLE);
++
++            // set preference  
++            getAndSetStatusBarPref(1, true);
++        } else if (SystemUIService.ACTION_HIDE_STATUS_BAR.equals(action)) {
++            // method 1, but open camera, will be show statusbar
++            //mStatusBarLayoutParams.height = 0;
++            //WindowManagerImpl.getDefault().updateViewLayout(mStatusBarView,
++            //    mStatusBarLayoutParams);
++            
++            // method 2
++            mStatusBarView.setVisibility(View.INVISIBLE);
++            
++            // set preference  
++            getAndSetStatusBarPref(1, false);
++        }
++    }
++
++    /*
++     * getAndSetStatusBarPref
++     *      int type:           0 read  - write
++     *      boolean status:     true or false
++     * broncho-add zhongguomin
++     */
++    public boolean getAndSetStatusBarPref(int type, boolean status) {
++        if(type == 1) {
++            Log.d(BRONCHO_TAG, "set preference broncho_statusbar_show: " + status);
++            SharedPreferences settings = mContext.getSharedPreferences(BRONCHO_STATUSBAR_PREFS, 0);
++            SharedPreferences.Editor editor = settings.edit();
++            editor.putBoolean("broncho_statusbar_show", status);
++            editor.commit();
++            return true;
++        } else {
++            SharedPreferences settings = mContext.getSharedPreferences(BRONCHO_STATUSBAR_PREFS, 0);
++            boolean show = settings.getBoolean("broncho_statusbar_show", false);
++            Log.d(BRONCHO_TAG, "get preference broncho_statusbar_show: " + show);
++            return show;
++        }
++    }
++
+ }

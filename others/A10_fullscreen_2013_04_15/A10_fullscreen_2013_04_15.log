@@ -1,0 +1,56 @@
+目前可以实现的功能：
+       在设置 -》 显示 中，增加一个 “全屏显示” 的单选框，默认是有statusbar，选择后，可以隐藏statusbar
+
+李龙，麻烦你处理下：
+1     在 设置-》显示 中增加一个单选框 “全屏显示”
+2     点击后发送广播事件，见本文最后的代码
+3     SystemUI中的处理，见补丁 A10_fullscreen_2013_04_15.patch
+
+建议在 Settings 中设置 broncho_statusbar_show 属性，而不是现在的在 SystemUI 中设置
+
+已知BUG
+1    长按桌面或者电源键，出现的界面未能全屏
+2    竖屏时，未能完全全屏，底部存在黑色边框
+
+下一版本需要做的：
+1    解决已知的BUG
+2    实现桌面点击事件，隐藏或者显示statusbar
+
+
+===================================================
+点击后发送广播事件
+===================================================
+    protected static final String ACTION1 = "com.android.action.HIDE_BAR";
+    protected static final String ACTION2 = "com.android.action_DISPLAY_BAR";
+
+    private Button btnBroadcast1;
+    private Button btnBroadcast2;
+    
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        
+        btnBroadcast1 = (Button)findViewById(R.id.btnBroadcast1);
+        btnBroadcast2 = (Button)findViewById(R.id.btnBroadcast2);
+        
+        btnBroadcast1.setOnClickListener(new OnClickListener(){  
+            @Override 
+            public void onClick(View v){  
+                Intent intent=new Intent();  
+                intent.setAction(ACTION1);  
+                sendBroadcast(intent);  
+            }  
+        });  
+        
+        btnBroadcast2.setOnClickListener(new OnClickListener(){  
+            @Override 
+            public void onClick(View v){  
+                Intent intent=new Intent();  
+                intent.setAction(ACTION2);  
+                sendBroadcast(intent);  
+            }  
+        });  
+    }
+
+

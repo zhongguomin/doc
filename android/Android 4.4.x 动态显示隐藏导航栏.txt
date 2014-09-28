@@ -1,0 +1,139 @@
+
+Android 4.4.x 动态显示隐藏导航栏
+
+一	如何i修改
+
+Gene@THTFIT-Compiler:~/project/A31_4.4/android/frameworks/base/packages/SystemUI$ git diff src/com/android/systemui/statusbar/phone/PhoneStatusBar.java
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBar.java b/packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBar.java
+index 57be318..1689261 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBar.java
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBar.java
+@@ -125,6 +125,12 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode {
+     public static final String ACTION_STATUSBAR_START
+             = "com.android.internal.policy.statusbar.START";
+ 
++       // show/hide nav bar
++       public static final String ACTION_SHOW_NAV_BAR = "com.android.action.SHOW_NAV_BAR";
++       public static final String ACTION_HIDE_NAV_BAR = "com.android.action.HIDE_NAV_BAR";
++       // nav bar status flag
++       public static boolean mIsShowNavigation = true;
++
+     private static final int MSG_OPEN_NOTIFICATION_PANEL = 1000;
+     private static final int MSG_CLOSE_PANELS = 1001;
+     private static final int MSG_OPEN_SETTINGS_PANEL = 1002;
+@@ -642,6 +648,8 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode {
+         filter.addAction(Intent.ACTION_SCREEN_ON);
+         filter.addAction(ACTION_DEMO);
+                filter.addAction(Intent.ACTION_BOOT_FAST);
++               filter.addAction(ACTION_SHOW_NAV_BAR);
++               filter.addAction(ACTION_HIDE_NAV_BAR);
+         context.registerReceiver(mBroadcastReceiver, filter);
+ 
+         // listen for USER_SETUP_COMPLETE setting (per-user)
+@@ -818,6 +826,7 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode {
+         prepareNavigationBarView();
+ 
+         mWindowManager.addView(mNavigationBarView, getNavigationBarLayoutParams());
++               mIsShowNavigation = true;
+     }
+ 
+     private void repositionNavigationBar() {
+@@ -825,7 +834,9 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode {
+ 
+         prepareNavigationBarView();
+ 
+-        mWindowManager.updateViewLayout(mNavigationBarView, getNavigationBarLayoutParams());
++        //mWindowManager.updateViewLayout(mNavigationBarView, getNavigationBarLayoutParams());
++        if (mIsShowNavigation)
++                       mWindowManager.updateViewLayout(mNavigationBarView, getNavigationBarLayoutParams());
+     }
+ 
+     private void notifyNavigationBarScreenOn(boolean screenOn) {
+@@ -879,6 +890,12 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode {
+         mWindowManager.removeView(mHeadsUpNotificationView);
+     }
+ 
++       private void removeNavigationBar() {
++               if (mNavigationBarView == null) return;
++               if (mIsShowNavigation)  mWindowManager.removeView(mNavigationBarView);
++               mIsShowNavigation = false;
++       }
++
+     public void refreshAllStatusBarIcons() {
+         refreshAllIconsForLayout(mStatusIcons);
+         refreshAllIconsForLayout(mNotificationIcons);
+@@ -1422,7 +1439,8 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode {
+ 
+         mExpandedVisible = true;
+         mPile.setLayoutTransitionsEnabled(true);
+-        if (mNavigationBarView != null)
++
++        if (mNavigationBarView != null && mIsShowNavigation)
+             mNavigationBarView.setSlippery(true);
+ 
+         updateCarrierLabelVisibility(true);
+@@ -2501,6 +2519,12 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode {
+                Log.d(TAG,"action boot fast remove all notification");
+                clearAll();
+                        }
++                       else if (ACTION_SHOW_NAV_BAR.equals(action)) {
++                               addNavigationBar();
++                       }
++                       else if (ACTION_HIDE_NAV_BAR.equals(action)) {
++                               removeNavigationBar();
++                       }
+         }
+     };
+ 
+Gene@THTFIT-Compiler:~/project/A31_4.4/android/frameworks/base/packages/SystemUI$ 
+
+
+
+
+二	如何使用
+
+	private static final String ACTION_SHOW_NAV_BAR = "com.android.action.SHOW_NAV_BAR";
+	private static final String ACTION_HIDE_NAV_BAR = "com.android.action.HIDE_NAV_BAR";
+
+
+	Intent intent = new Intent();  
+	intent.setAction(ACTION_HIDE_NAV_BAR);	// ACTION_SHOW_NAV_BAR
+	sendBroadcast(intent);  
+
+
+
+三	其他
+
+	private View main = null;
+
+	main = getLayoutInflater().from(this).inflate(R.layout.fragment_main, null); 
+	main.setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);  
+	main.setOnClickListener(this);  
+	setContentView(main);
+
+
+	@Override
+	public void onClick(View v) {
+		int i = main.getSystemUiVisibility();  
+		if (i == View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) {  
+			main.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE); 
+		} else if (i == View.SYSTEM_UI_FLAG_VISIBLE){  
+			main.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE);  
+		} else if (i == View.SYSTEM_UI_FLAG_LOW_PROFILE) {  
+			main.setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);  
+		}
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
